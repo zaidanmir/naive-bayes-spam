@@ -11,8 +11,6 @@ with Laplace-smoothed conditional probabilities
 where n_{cw} is the count of word w in documents of class c, |V| is the
 vocabulary size, and α > 0 is the smoothing constant.
 
-This module implements `fit()`. Prediction methods are added in a
-follow-up commit.
 """
 from __future__ import annotations
 
@@ -57,6 +55,24 @@ class MultinomialNB:
 
         return self
 
+    def predict_log_proba(self, texts) -> np.ndarray:
+        """Return un-normalised log P(c|x) per (text, class). Shape: (n_texts, n_classes).
+
+        log P(c|x) ∝ log P(c) + Σ_w x_w · log P(w|c)
+
+        The Σ_w sum is the dot product of the count vector with row c of
+        log_likelihood_, vectorised across all texts as a single matmul of
+        shape (n_texts, |V|) @ (|V|, n_classes).
+        """
+        if self.log_prior_ is None or self.log_likelihood_ is None:
+            raise RuntimeError("predict_log_proba called before fit")
+        encoded = np.stack([self.vocab.encode(t) for t in texts])
+        return self.log_prior_ + encoded @ self.log_likelihood_.T
+
+    def predict(self, texts) -> np.ndarray:
+        """Return the predicted class label for each text."""
+        return self.classes_[self.predict_log_proba(texts).argmax(axis=1)]
+
 
 if __name__ == "__main__":
     from src.data import load_dataset, split_train_test
@@ -77,3 +93,13 @@ if __name__ == "__main__":
     diff = clf.log_likelihood_[1] - clf.log_likelihood_[0]
     for idx in np.argsort(diff)[-15:][::-1]:
         print(f"  {vocab.idx_to_word[idx]:<15}  {diff[idx]:+.3f}")
+
+    print("\nSpot-check predictions on three handcrafted messages:")
+    samples = [
+        "Hey are you free for lunch tomorrow?",
+        "WIN A FREE iPhone! Text WIN to 80082 to claim your prize now!!!",
+        "Don't forget to grab milk on your way home",
+    ]
+    for text, pred in zip(samples, clf.predict(samples)):
+        label = "spam" if pred == 1 else "ham"
+        print(f"  [{label}]  {text!r}")
