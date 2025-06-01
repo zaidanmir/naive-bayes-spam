@@ -28,3 +28,6 @@ env/
 
 # Dataset (downloaded on demand by src/data.py)
 data/raw/
+
+# Run outputs (regenerable by re-running train.py)
+runs/
