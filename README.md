@@ -68,6 +68,9 @@ python -m unittest discover tests
 The dataset (UCI SMS Spam Collection, ~470 KB) is downloaded automatically on
 first run by `src/data.py`.
 
+A `Makefile` wraps the same commands: `make install`, `make train`,
+`make bench`, `make test`, `make all`.
+
 ## Project structure
 
 ```
